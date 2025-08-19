@@ -27,12 +27,12 @@ importers:
       '@types/express':
         specifier: ^4.17.18
         version: 4.17.23
-      tsc:
-        specifier: ^2.0.4
-        version: 2.0.4
       tsx:
         specifier: ^4.20.4
         version: 4.20.4
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
 
 packages:
 
@@ -677,10 +677,6 @@ packages:
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
-
-  tsc@2.0.4:
-    resolution: {integrity: sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==}
-    hasBin: true
 
   tsx@4.20.4:
     resolution: {integrity: sha512-yyxBKfORQ7LuRt/BQKBXrpcq59ZvSW0XxwfjAt3w2/8PmdxaFzijtMhTawprSHhpzeM5BgU2hXHG3lklIERZXg==}
@@ -1412,8 +1408,6 @@ snapshots:
 
   toidentifier@1.0.1: {}
 
-  tsc@2.0.4: {}
-
   tsx@4.20.4:
     dependencies:
       esbuild: 0.25.9
@@ -1432,8 +1426,7 @@ snapshots:
       media-typer: 1.1.0
       mime-types: 3.0.1
 
-  typescript@5.9.2:
-    optional: true
+  typescript@5.9.2: {}
 
   undici-types@7.10.0: {}
 
