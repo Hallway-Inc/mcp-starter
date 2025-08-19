@@ -12,11 +12,9 @@ import {
 import { randomUUID } from "crypto";
 import { type Request, type Response } from "express";
 import {
-	getAlerts,
-	getForecast,
-	getAlertsToolDefinition,
-	getForecastToolDefinition,
-} from "./tools/weatherTools.js";
+	searchFlights,
+	searchFlightsToolDefinition,
+} from "./tools/searchFlights.js";
 
 const SESSION_ID_HEADER_NAME = "mcp-session-id";
 const JSON_RPC = "2.0";
@@ -74,8 +72,7 @@ export class MCPServer {
 	// to support multiple simultaneous connections
 	transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-	private getAlertsToolName = "get-alerts";
-	private getForecastToolName = "get-forecast";
+	private searchFlightsToolName = "search-flights";
 
 	constructor(server: Server) {
 		this.server = server;
@@ -156,9 +153,9 @@ export class MCPServer {
 		// Define available tools
 		const setToolSchema = () =>
 			this.server.setRequestHandler(ListToolsRequestSchema, () => {
-				return {
-					tools: [getAlertsToolDefinition, getForecastToolDefinition],
-				};
+							return {
+				tools: [searchFlightsToolDefinition],
+			};
 			});
 
 		setToolSchema();
@@ -179,25 +176,21 @@ export class MCPServer {
 					throw new Error("tool name undefined");
 				}
 
-				if (toolName === this.getAlertsToolName) {
-					const alertParams = args as {
-						state: string;
+				if (toolName === this.searchFlightsToolName) {
+					const flightParams = args as {
+						originCode: string;
+						originName?: string;
+						destinationCode: string;
+						destinationName?: string;
+						departureDate: string;
+						returnDate?: string;
+						passengerCount: number;
+						flightClass: string;
+						dateBuffer?: boolean;
 					};
-					const result = await getAlerts(alertParams);
+					const result = await searchFlights(flightParams);
 
-					console.log("getAlertsTool result: ", result);
-
-					return result;
-				}
-
-				if (toolName === this.getForecastToolName) {
-					const forecastParams = args as {
-						latitude: number;
-						longitude: number;
-					};
-					const result = await getForecast(forecastParams);
-
-					console.log("getForecastTool result: ", result);
+					console.log("searchFlightsTool result: ", result);
 
 					return result;
 				}
