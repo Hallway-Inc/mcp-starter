@@ -40,7 +40,7 @@ app.use(express.json());
 const router = express.Router();
 
 // single endpoint for the client to send messages to
-const MCP_ENDPOINT = "/mcp";
+const MCP_ENDPOINT = "/";
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 router.post(MCP_ENDPOINT, async (req: Request, res: Response) => {
