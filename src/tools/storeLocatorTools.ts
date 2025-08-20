@@ -302,8 +302,8 @@ export async function findClosestStores(params: { location: string; limit?: numb
 
 // Tool definition for the store locator
 export const findClosestStoresToolDefinition = {
-  name: "find-closest-stores",
-  title: "Find Closest Stores",
+  name: "find-stores-with-shankys-near-me",
+  title: "Find Shanky's Whip in a store near me",
   description: "Find the closest stores to a given location (city, state, or address)",
   inputSchema: {
     type: "object",
