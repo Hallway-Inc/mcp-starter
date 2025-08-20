@@ -12,11 +12,9 @@ import {
 import { randomUUID } from "crypto";
 import { type Request, type Response } from "express";
 import {
-	getAlerts,
-	getForecast,
-	getAlertsToolDefinition,
-	getForecastToolDefinition,
-} from "./tools/weatherTools.js";
+	findClosestStores,
+	findClosestStoresToolDefinition,
+} from "./tools/storeLocatorTools.js";
 
 const SESSION_ID_HEADER_NAME = "mcp-session-id";
 const JSON_RPC = "2.0";
@@ -74,8 +72,7 @@ export class MCPServer {
 	// to support multiple simultaneous connections
 	transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-	private getAlertsToolName = "get-alerts";
-	private getForecastToolName = "get-forecast";
+	private findClosestStoresToolName = "find-closest-stores";
 
 	constructor(server: Server) {
 		this.server = server;
@@ -157,7 +154,7 @@ export class MCPServer {
 		const setToolSchema = () =>
 			this.server.setRequestHandler(ListToolsRequestSchema, () => {
 				return {
-					tools: [getAlertsToolDefinition, getForecastToolDefinition],
+					tools: [findClosestStoresToolDefinition],
 				};
 			});
 
@@ -179,25 +176,31 @@ export class MCPServer {
 					throw new Error("tool name undefined");
 				}
 
-				if (toolName === this.getAlertsToolName) {
-					const alertParams = args as {
-						state: string;
+
+				if (toolName === this.findClosestStoresToolName) {
+					const storeParams = args as {
+						location: string;
+						limit?: number;
 					};
-					const result = await getAlerts(alertParams);
-
-					console.log("getAlertsTool result: ", result);
-
-					return result;
-				}
-
-				if (toolName === this.getForecastToolName) {
-					const forecastParams = args as {
-						latitude: number;
-						longitude: number;
-					};
-					const result = await getForecast(forecastParams);
-
-					console.log("getForecastTool result: ", result);
+					
+					console.log("🏪 Store Locator Tool Called:");
+					console.log("  📍 Location:", storeParams.location);
+					console.log("  🔢 Limit:", storeParams.limit || 5);
+					console.log("  ⏰ Timestamp:", new Date().toISOString());
+					
+					const startTime = Date.now();
+					const result = await findClosestStores(storeParams);
+					const endTime = Date.now();
+					
+					console.log("✅ Store Locator Tool Response:");
+					console.log("  ⏱️  Duration:", `${endTime - startTime}ms`);
+					console.log("  📝 Text Length:", result.content[0].text.length, "characters");
+					
+					if (result.structuredContent && result.structuredContent.length > 0) {
+						console.log("  🔗 Structured Link:", result.structuredContent[0].data.title);
+					}
+					
+					console.log("  📄 Full Result:", JSON.stringify(result, null, 2));
 
 					return result;
 				}
