@@ -296,7 +296,7 @@ export async function findClosestStores(params: { location: string; limit?: numb
         text: resultText,
       },
     ],
-    structuredContent: [structuredResult],
+    structuredContent: structuredResult,
   };
 }
 
@@ -321,5 +321,23 @@ export const findClosestStoresToolDefinition = {
       },
     },
     required: ["location"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      action: { type: "string" },
+      data: {
+        type: "object",
+        properties: {
+          url: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+          open_in_new_tab: { type: "boolean" },
+          auto_navigate: { type: "boolean" },
+        },
+        required: ["url", "title", "description", "open_in_new_tab", "auto_navigate"],
+      },
+    },
+    required: ["action", "data"],
   },
 };
