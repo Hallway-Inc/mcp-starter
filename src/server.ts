@@ -72,7 +72,7 @@ export class MCPServer {
 	// to support multiple simultaneous connections
 	transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-	private findClosestStoresToolName = "find-closest-stores";
+	private findClosestStoresToolName = "find-stores-with-shankys-near-me";
 
 	constructor(server: Server) {
 		this.server = server;
@@ -196,8 +196,8 @@ export class MCPServer {
 					console.log("  ⏱️  Duration:", `${endTime - startTime}ms`);
 					console.log("  📝 Text Length:", result.content[0].text.length, "characters");
 					
-					if (result.structuredContent && result.structuredContent.length > 0) {
-						console.log("  🔗 Structured Link:", result.structuredContent[0].data.title);
+					if (result.structuredContent) {
+						console.log("  🔗 Structured Link:", result.structuredContent.data.title);
 					}
 					
 					console.log("  📄 Full Result:", JSON.stringify(result, null, 2));
