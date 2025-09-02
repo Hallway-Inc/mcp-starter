@@ -1,8 +1,12 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express, { type Request, type Response } from "express";
+import { config } from "dotenv";
 import { MCPServer } from "./server.js";
 
-// Default port
+// Load environment variables from .env file
+config({ quiet: true });
+
+
 let PORT = 8123;
 
 // Parse command-line arguments for --port=XXXX
