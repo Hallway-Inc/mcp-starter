@@ -6,11 +6,7 @@ import { MCPServer } from "./server.js";
 // Load environment variables from .env file
 config({ quiet: true });
 
-<<<<<<< HEAD
-
-=======
 // Default port
->>>>>>> c4fa848 (add shopify tools for products)
 let PORT = 8123;
 
 // https://shop-us.shankyswhip.com/products.json
