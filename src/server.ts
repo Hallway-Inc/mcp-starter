@@ -15,6 +15,10 @@ import {
 	findClosestStores,
 	findClosestStoresToolDefinition,
 } from "./tools/storeLocatorTools.js";
+import {
+	searchProducts,
+	productSearchToolDefinition,
+} from "./tools/productSearchTools.js";
 
 const SESSION_ID_HEADER_NAME = "mcp-session-id";
 const JSON_RPC = "2.0";
@@ -73,6 +77,7 @@ export class MCPServer {
 	transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
 	private findClosestStoresToolName = "find-stores-with-shankys-near-me";
+	private productSearchToolName = "search-shankys-whip-products";
 
 	constructor(server: Server) {
 		this.server = server;
@@ -154,7 +159,7 @@ export class MCPServer {
 		const setToolSchema = () =>
 			this.server.setRequestHandler(ListToolsRequestSchema, () => {
 				return {
-					tools: [findClosestStoresToolDefinition],
+					tools: [findClosestStoresToolDefinition, productSearchToolDefinition],
 				};
 			});
 
@@ -193,6 +198,43 @@ export class MCPServer {
 					const endTime = Date.now();
 					
 					console.log("✅ Store Locator Tool Response:");
+					console.log("  ⏱️  Duration:", `${endTime - startTime}ms`);
+					console.log("  📝 Text Length:", result.content[0].text.length, "characters");
+					
+					if (result.structuredContent) {
+						console.log("  🔗 Structured Link:", result.structuredContent.data.title);
+					}
+					
+					console.log("  📄 Full Result:", JSON.stringify(result, null, 2));
+
+					return result;
+				}
+
+				if (toolName === this.productSearchToolName) {
+					const searchParams = args as {
+						query?: string;
+						category?: string;
+						minPrice?: number;
+						maxPrice?: number;
+						features?: string[];
+						sortBy?: 'price' | 'name' | 'value';
+						limit?: number;
+					};
+					
+					console.log("🛒 Product Search Tool Called:");
+					console.log("  🔍 Query:", searchParams.query || 'none');
+					console.log("  📦 Category:", searchParams.category || 'all');
+					console.log("  💰 Price Range:", `$${searchParams.minPrice || 0} - $${searchParams.maxPrice || '∞'}`);
+					console.log("  ✨ Features:", searchParams.features || 'none');
+					console.log("  📊 Sort By:", searchParams.sortBy || 'value');
+					console.log("  🔢 Limit:", searchParams.limit || 5);
+					console.log("  ⏰ Timestamp:", new Date().toISOString());
+					
+					const startTime = Date.now();
+					const result = await searchProducts(searchParams);
+					const endTime = Date.now();
+					
+					console.log("✅ Product Search Tool Response:");
 					console.log("  ⏱️  Duration:", `${endTime - startTime}ms`);
 					console.log("  📝 Text Length:", result.content[0].text.length, "characters");
 					
