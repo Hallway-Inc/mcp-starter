@@ -280,9 +280,9 @@ export async function searchProducts(params: {
       action: "display_link",
       data: {
         // Add to Cart URL (current) - adds to cart and shows cart page
-        url: variantId ? `https://shop-us.shankyswhip.com/cart/add?id=${variantId}&quantity=1&utm_source=hallway&utm_medium=chatbot&utm_campaign=product_search&utm_content=add_to_cart` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}?utm_source=hallway&utm_medium=chatbot&utm_campaign=product_search&utm_content=product_page`,
+        url: variantId ? `https://shop-us.shankyswhip.com/cart/add?id=${variantId}&quantity=1&utm_source=hallway&utm_medium=chatbot&utm_campaign=hallway_q3_2025` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}?utm_source=hallway&utm_medium=chatbot&utm_campaign=hallway_q3_2025`,
         // Buy Now URL (alternative) - goes directly to checkout
-        // url: variantId ? `https://shop-us.shankyswhip.com/cart/${variantId}:1?utm_source=hallway&utm_medium=chatbot&utm_campaign=product_search&utm_content=buy_now` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}?utm_source=hallway&utm_medium=chatbot&utm_campaign=product_search&utm_content=product_page`,
+        // url: variantId ? `https://shop-us.shankyswhip.com/cart/${variantId}:1?utm_source=hallway&utm_medium=chatbot&utm_campaign=hallway_q3_2025` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}?utm_source=hallway&utm_medium=chatbot&utm_campaign=hallway_q3_2025`,
         title: `Add to Cart - ${topProduct.title}`,
         // For Buy Now, change title to: `Buy Now - ${topProduct.title}`,
         description: `${topProduct.category} - $${parseFloat(topProduct.price).toFixed(2)} - ${topProduct.features.join(', ')}`,
