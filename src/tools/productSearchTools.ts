@@ -275,14 +275,24 @@ export async function searchProducts(params: {
 
     // Create structured content for the top result
     const topProduct = results[0];
+    const variantId = topProduct.variants[0]?.id;
     const structuredContent: DisplayLinkStructuredResult = {
       action: "display_link",
       data: {
-        url: `https://shop-us.shankyswhip.com/products/${topProduct.handle}`,
-        title: `Shop ${topProduct.title}`,
+        // Add to Cart URL (current) - adds to cart and shows cart page
+        url: variantId ? `https://shop-us.shankyswhip.com/cart/add?id=${variantId}&quantity=1` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}`,
+        // Buy Now URL (alternative) - goes directly to checkout
+        // url: variantId ? `https://shop-us.shankyswhip.com/cart/${variantId}:1` : `https://shop-us.shankyswhip.com/products/${topProduct.handle}`,
+        title: `Add to Cart - ${topProduct.title}`,
+        // For Buy Now, change title to: `Buy Now - ${topProduct.title}`,
         description: `${topProduct.category} - $${parseFloat(topProduct.price).toFixed(2)} - ${topProduct.features.join(', ')}`,
-        open_in_new_tab: true,
-        auto_navigate: false
+        open_in_new_tab: false,
+        auto_navigate: false,
+        image: topProduct.images && topProduct.images.length > 0 ? {
+          name: topProduct.title,
+          url: topProduct.images[0].src,
+          description: `${topProduct.title} - ${topProduct.category}`
+        } : null
       }
     };
 
@@ -365,6 +375,15 @@ export const productSearchToolDefinition = {
           description: { type: "string" },
           open_in_new_tab: { type: "boolean" },
           auto_navigate: { type: "boolean" },
+          image: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              url: { type: "string" },
+              description: { type: "string" }
+            },
+            required: ["name", "url"]
+          }
         },
         required: ["url", "title", "description", "open_in_new_tab", "auto_navigate"],
       },
