@@ -70,7 +70,7 @@ export async function searchFlights(params: FlightSearchParams) {
 		content: [
 			{
 				type: "text",
-				text: `Found flights from ${params.originCode} to ${params.destinationCode} on ${params.departureDate}.`,
+				text: `Flight search: ${params.originCode} to ${params.destinationCode} on ${params.departureDate}`,
 			},
 			// {
 			// 	type: "text",
