@@ -140,14 +140,18 @@ export const searchFlightsToolDefinition = {
 		properties: {
 			action: { type: "string" },
 			data: {
-				url: { type: "string" },
-				title: { type: "string" },
-				description: { type: "string" },
-				image_url: { type: "string" },
-				open_in_new_tab: { type: "boolean" },
-				auto_navigate: { type: "boolean" },
+				type: "object",
+				properties: {
+					url: { type: "string" },
+					title: { type: "string" },
+					description: { type: "string" },
+					image_url: { type: "string" },
+					open_in_new_tab: { type: "boolean" },
+					auto_navigate: { type: "boolean" },
+				},
+				required: ["url", "title", "description", "open_in_new_tab", "auto_navigate"],
 			},
 		},
-		required: ["action", "url", "title", "description", "openInNewTab"],
+		required: ["action", "data"],
 	},
 };
