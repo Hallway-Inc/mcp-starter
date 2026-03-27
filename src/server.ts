@@ -1,209 +1,174 @@
 import { type Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
-	CallToolRequestSchema,
-	InitializeRequestSchema,
-	type JSONRPCError,
-	type JSONRPCNotification,
-	ListToolsRequestSchema,
-	type LoggingMessageNotification,
-	type Notification,
+  CallToolRequestSchema,
+  InitializeRequestSchema,
+  type JSONRPCError,
+  type JSONRPCNotification,
+  ListToolsRequestSchema,
+  type LoggingMessageNotification,
+  type Notification,
 } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "crypto";
 import { type Request, type Response } from "express";
 import {
-	getAlerts,
-	getForecast,
-	getAlertsToolDefinition,
-	getForecastToolDefinition,
-} from "./tools/weatherTools.js";
+  emailCompany,
+  emailCompanyToolDefinition,
+} from "./tools/emailTools.js";
 
 const SESSION_ID_HEADER_NAME = "mcp-session-id";
 const JSON_RPC = "2.0";
 
 function createErrorResponse(message: string): JSONRPCError {
-	return {
-		jsonrpc: "2.0",
-		error: {
-			code: -32000,
-			message: message,
-		},
-		id: randomUUID(),
-	};
+  return {
+    jsonrpc: "2.0",
+    error: {
+      code: -32000,
+      message: message,
+    },
+    id: randomUUID(),
+  };
 }
 
 function isInitializeRequest(body: unknown): boolean {
-	const isInitial = (data: unknown) => {
-		const result = InitializeRequestSchema.safeParse(data);
-		return result.success;
-	};
-	if (Array.isArray(body)) {
-		return body.some((request) => isInitial(request));
-	}
-	return isInitial(body);
+  const isInitial = (data: unknown) => {
+    const result = InitializeRequestSchema.safeParse(data);
+    return result.success;
+  };
+  if (Array.isArray(body)) {
+    return body.some((request) => isInitial(request));
+  }
+  return isInitial(body);
 }
 
 function streamMessages(transport: StreamableHTTPServerTransport) {
-	try {
-		// based on LoggingMessageNotificationSchema to trigger setNotificationHandler on client
-		const message: LoggingMessageNotification = {
-			method: "notifications/message",
-			params: { level: "info", data: "SSE Connection established" },
-		};
+  try {
+    const message: LoggingMessageNotification = {
+      method: "notifications/message",
+      params: { level: "info", data: "SSE Connection established" },
+    };
 
-		void sendNotification(transport, message);
-	} catch (error) {
-		console.error("Error sending message:", error);
-	}
+    void sendNotification(transport, message);
+  } catch (error) {
+    console.error("Error sending message:", error);
+  }
 }
 
 async function sendNotification(
-	transport: StreamableHTTPServerTransport,
-	notification: Notification,
+  transport: StreamableHTTPServerTransport,
+  notification: Notification,
 ) {
-	const rpcNotificaiton: JSONRPCNotification = {
-		...notification,
-		jsonrpc: JSON_RPC,
-	};
-	await transport.send(rpcNotificaiton);
+  const rpcNotificaiton: JSONRPCNotification = {
+    ...notification,
+    jsonrpc: JSON_RPC,
+  };
+  await transport.send(rpcNotificaiton);
 }
 
 export class MCPServer {
-	server: Server;
+  server: Server;
+  transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
 
-	// to support multiple simultaneous connections
-	transports: { [sessionId: string]: StreamableHTTPServerTransport } = {};
+  constructor(server: Server) {
+    this.server = server;
+    this.setupTools();
+  }
 
-	private getAlertsToolName = "get-alerts";
-	private getForecastToolName = "get-forecast";
+  async handleGetRequest(req: Request, res: Response) {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !this.transports[sessionId]) {
+      res
+        .status(400)
+        .json(
+          createErrorResponse("Bad Request: invalid session ID or method."),
+        );
+      return;
+    }
 
-	constructor(server: Server) {
-		this.server = server;
-		this.setupTools();
-	}
+    console.log(`Establishing SSE stream for session ${sessionId}`);
+    const transport = this.transports[sessionId];
+    await transport.handleRequest(req, res);
+    void streamMessages(transport);
 
-	async handleGetRequest(req: Request, res: Response) {
-		// if server does not offer an SSE stream at this endpoint.
-		// res.status(405).set('Allow', 'POST').send('Method Not Allowed')
+    return;
+  }
 
-		const sessionId = req.headers["mcp-session-id"] as string | undefined;
-		if (!sessionId || !this.transports[sessionId]) {
-			res
-				.status(400)
-				.json(
-					createErrorResponse("Bad Request: invalid session ID or method."),
-				);
-			return;
-		}
+  async handlePostRequest(req: Request, res: Response) {
+    const sessionId = req.headers[SESSION_ID_HEADER_NAME] as string | undefined;
+    let transport: StreamableHTTPServerTransport;
 
-		console.log(`Establishing SSE stream for session ${sessionId}`);
-		const transport = this.transports[sessionId];
-		await transport.handleRequest(req, res);
-		void streamMessages(transport);
+    try {
+      if (sessionId && this.transports[sessionId]) {
+        transport = this.transports[sessionId];
+        await transport.handleRequest(req, res, req.body);
+        return;
+      }
 
-		return;
-	}
+      if (!sessionId && isInitializeRequest(req.body)) {
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+        });
 
-	async handlePostRequest(req: Request, res: Response) {
-		const sessionId = req.headers[SESSION_ID_HEADER_NAME] as string | undefined;
-		let transport: StreamableHTTPServerTransport;
+        await this.server.connect(transport);
+        await transport.handleRequest(req, res, req.body);
 
-		try {
-			// reuse existing transport
-			if (sessionId && this.transports[sessionId]) {
-				transport = this.transports[sessionId];
-				await transport.handleRequest(req, res, req.body);
-				return;
-			}
+        const sessionId = transport.sessionId;
+        if (sessionId) {
+          this.transports[sessionId] = transport;
+        }
 
-			// create new transport
-			if (!sessionId && isInitializeRequest(req.body)) {
-				const transport = new StreamableHTTPServerTransport({
-					sessionIdGenerator: () => randomUUID(),
-				});
+        return;
+      }
 
-				await this.server.connect(transport);
-				await transport.handleRequest(req, res, req.body);
+      res
+        .status(400)
+        .json(
+          createErrorResponse("Bad Request: invalid session ID or method."),
+        );
+      return;
+    } catch (error) {
+      console.error("Error handling MCP request:", error);
+      res.status(500).json(createErrorResponse("Internal server error."));
+      return;
+    }
+  }
 
-				// session ID will only be available (if in not Stateless-Mode)
-				// after handling the first request
-				const sessionId = transport.sessionId;
-				if (sessionId) {
-					this.transports[sessionId] = transport;
-				}
+  async cleanup() {
+    await this.server.close();
+  }
 
-				return;
-			}
+  private setupTools() {
+    this.server.setRequestHandler(ListToolsRequestSchema, () => {
+      return {
+        tools: [emailCompanyToolDefinition],
+      };
+    });
 
-			res
-				.status(400)
-				.json(
-					createErrorResponse("Bad Request: invalid session ID or method."),
-				);
-			return;
-		} catch (error) {
-			console.error("Error handling MCP request:", error);
-			res.status(500).json(createErrorResponse("Internal server error."));
-			return;
-		}
-	}
+    this.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request, _extra) => {
+        const args = request.params.arguments;
+        const toolName = request.params.name;
+        console.log("Tool call:", toolName, args);
 
-	async cleanup() {
-		await this.server.close();
-	}
+        if (!args) {
+          throw new Error("arguments undefined");
+        }
 
-	private setupTools() {
-		// Define available tools
-		const setToolSchema = () =>
-			this.server.setRequestHandler(ListToolsRequestSchema, () => {
-				return {
-					tools: [getAlertsToolDefinition, getForecastToolDefinition],
-				};
-			});
+        if (toolName === "email_company") {
+          return await emailCompany(
+            args as {
+              character_id: string;
+              visitor_message: string;
+              conversation_summary: string;
+              visitor_name: string;
+              visitor_email: string;
+            },
+          );
+        }
 
-		setToolSchema();
-
-		// handle tool calls
-		this.server.setRequestHandler(
-			CallToolRequestSchema,
-			async (request, _extra) => {
-				const args = request.params.arguments;
-				const toolName = request.params.name;
-				console.log("Received request for tool with argument:", toolName, args);
-
-				if (!args) {
-					throw new Error("arguments undefined");
-				}
-
-				if (!toolName) {
-					throw new Error("tool name undefined");
-				}
-
-				if (toolName === this.getAlertsToolName) {
-					const alertParams = args as {
-						state: string;
-					};
-					const result = await getAlerts(alertParams);
-
-					console.log("getAlertsTool result: ", result);
-
-					return result;
-				}
-
-				if (toolName === this.getForecastToolName) {
-					const forecastParams = args as {
-						latitude: number;
-						longitude: number;
-					};
-					const result = await getForecast(forecastParams);
-
-					console.log("getForecastTool result: ", result);
-
-					return result;
-				}
-
-				throw new Error("Tool not found");
-			},
-		);
-	}
+        throw new Error(`Unknown tool: ${toolName}`);
+      },
+    );
+  }
 }
